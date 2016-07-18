@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/template/app.iml" filepath="$PROJECT_DIR$/template/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../mCerebrum-DataKitAPI/datakitapi/datakitapi.iml" filepath="$PROJECT_DIR$/../mCerebrum-DataKitAPI/datakitapi/datakitapi.iml" />
+      <module fileurl="file://$PROJECT_DIR$/mCerebrum-SelfReport.iml" filepath="$PROJECT_DIR$/mCerebrum-SelfReport.iml" />
+      <module fileurl="file://$PROJECT_DIR$/selfreport/template.iml" filepath="$PROJECT_DIR$/selfreport/template.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../mCerebrum-Utilities/utilities/utilities.iml" filepath="$PROJECT_DIR$/../mCerebrum-Utilities/utilities/utilities.iml" />
+    </modules>
+  </component>
+</project>
