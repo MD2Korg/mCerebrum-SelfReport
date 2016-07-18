@@ -36,6 +36,17 @@
             </intent-filter>
             >
         </activity>
+        <activity
+            android:name="org.md2k.selfreport.ActivitySelfReport"
+            android:enabled="true"
+            android:exported="true"
+            android:label="Self Report"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="org.md2k.selfreport.ActivitySelfReport" />
+            </intent-filter>
+            >
+        </activity>
     </application>
 
 </manifest>

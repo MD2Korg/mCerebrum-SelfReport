@@ -1,29 +1,18 @@
-package org.md2k.selfreport;
+package org.md2k.selfreport.config;
 
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.os.Bundle;
-import android.preference.CheckBoxPreference;
-import android.preference.Preference;
-import android.preference.PreferenceCategory;
-import android.preference.PreferenceFragment;
-import android.preference.SwitchPreference;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.ListView;
-import android.widget.Toast;
+import android.content.Context;
 
-import org.md2k.datakitapi.source.METADATA;
-import org.md2k.datakitapi.source.datasource.DataSource;
-import org.md2k.datakitapi.source.datasource.DataSourceType;
-import org.md2k.utilities.Apps;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import org.md2k.selfreport.Constants;
 import org.md2k.utilities.Report.Log;
-import org.md2k.utilities.UI.AlertDialogs;
+import org.md2k.utilities.data_format.notification.NotificationRequests;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 
 /**
@@ -52,21 +41,35 @@ import java.util.ArrayList;
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-public class PrefsFragmentSettings extends PreferenceFragment {
-    private static final String TAG = PrefsFragmentSettings.class.getSimpleName();
+public class ConfigManager {
+    private static final String TAG = ConfigManager.class.getSimpleName();
+    private ArrayList<Config> config;
+    private boolean valid;
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-    }
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        View v = super.onCreateView(inflater, container, savedInstanceState);
-        assert v != null;
-        ListView lv = (ListView) v.findViewById(android.R.id.list);
-        lv.setPadding(0, 0, 0, 0);
-        return v;
+    public ConfigManager(Context context) {
+        valid=read();
     }
 
+    private boolean read() {
+        BufferedReader br;
+        config=null;
+        try {
+            br = new BufferedReader(new InputStreamReader(new FileInputStream(Constants.CONFIG_DIRECTORY + Constants.CONFIG_FILENAME)));
+            Gson gson = new Gson();
+            Type collectionType = new TypeToken<ArrayList<Config>>() {
+            }.getType();
+            config = gson.fromJson(br, collectionType);
+        } catch (Exception e) {
+            return false;
+        }
+        if(config==null) return false;
+        else return true;
+    }
+    public ArrayList<Config> getConfig() {
+        return config;
+    }
+
+    public boolean isValid() {
+        return valid;
+    }
 }

@@ -1,30 +1,9 @@
-package org.md2k.selfreport;
+package org.md2k.selfreport.config;
 
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.os.Bundle;
-import android.preference.CheckBoxPreference;
-import android.preference.Preference;
-import android.preference.PreferenceCategory;
-import android.preference.PreferenceFragment;
-import android.preference.SwitchPreference;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.ListView;
-import android.widget.Toast;
-
-import org.md2k.datakitapi.source.METADATA;
 import org.md2k.datakitapi.source.datasource.DataSource;
-import org.md2k.datakitapi.source.datasource.DataSourceType;
-import org.md2k.utilities.Apps;
-import org.md2k.utilities.Report.Log;
-import org.md2k.utilities.UI.AlertDialogs;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * Copyright (c) 2015, The University of Memphis, MD2K Center
@@ -52,21 +31,25 @@ import java.util.ArrayList;
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-public class PrefsFragmentSettings extends PreferenceFragment {
-    private static final String TAG = PrefsFragmentSettings.class.getSimpleName();
+public class Config {
+    private String id;
+    private String name;
+    private DataSource datasource;
+    private HashMap<String, String> parameters;
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-    }
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        View v = super.onCreateView(inflater, container, savedInstanceState);
-        assert v != null;
-        ListView lv = (ListView) v.findViewById(android.R.id.list);
-        lv.setPadding(0, 0, 0, 0);
-        return v;
+    public String getId() {
+        return id;
     }
 
+    public DataSource getDatasource() {
+        return datasource;
+    }
+
+    public HashMap<String, String> getParameters() {
+        return parameters;
+    }
+
+    public String getName() {
+        return name;
+    }
 }
