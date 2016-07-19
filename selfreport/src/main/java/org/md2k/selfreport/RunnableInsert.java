@@ -1,9 +1,21 @@
-package org.md2k.selfreport.config;
+package org.md2k.selfreport;
 
+import android.content.Context;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.internal.Excluder;
+
+import org.md2k.datakitapi.DataKitAPI;
+import org.md2k.datakitapi.datatype.DataTypeJSONObject;
+import org.md2k.datakitapi.exception.DataKitException;
 import org.md2k.datakitapi.source.datasource.DataSource;
-
-import java.util.ArrayList;
-import java.util.HashMap;
+import org.md2k.datakitapi.source.datasource.DataSourceBuilder;
+import org.md2k.datakitapi.source.datasource.DataSourceClient;
+import org.md2k.datakitapi.time.DateTime;
+import org.md2k.selfreport.config.Config;
+import org.md2k.utilities.data_format.Event;
 
 /**
  * Copyright (c) 2015, The University of Memphis, MD2K Center
@@ -31,35 +43,26 @@ import java.util.HashMap;
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-public class Config {
-    private String id;
-    private String type;
-    private String name;
-    private DataSource datasource;
-    private DataSource listen_datasource;
-    private HashMap<String, String> parameters;
-
-    public String getId() {
-        return id;
+public class RunnableInsert implements Runnable{
+    DataKitAPI dataKitAPI;
+    DataTypeJSONObject dataTypeJSONObject;
+    DataSourceBuilder dataSourceBuilder;
+    public RunnableInsert(DataKitAPI dataKitAPI, DataSourceBuilder dataSourceBuilder, DataTypeJSONObject dataTypeJSONObject){
+        this.dataKitAPI=dataKitAPI;
+        this.dataSourceBuilder=dataSourceBuilder;
+        this.dataTypeJSONObject=dataTypeJSONObject;
     }
-
-    public DataSource getDatasource() {
-        return datasource;
+    @Override
+    public void run() {
+        writeToDataKit();
     }
-
-    public HashMap<String, String> getParameters() {
-        return parameters;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public DataSource getListen_datasource() {
-        return listen_datasource;
+    private boolean writeToDataKit(){
+        try {
+            DataSourceClient dataSourceClient = dataKitAPI.register(dataSourceBuilder);
+            dataKitAPI.insert(dataSourceClient, dataTypeJSONObject);
+            return true;
+        }catch (Exception e){
+            return false;
+        }
     }
 }

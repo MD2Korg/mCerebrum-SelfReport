@@ -2,6 +2,7 @@ package org.md2k.selfreport;
 
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.ContactsContract;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.Toast;
@@ -54,18 +55,23 @@ import java.util.HashMap;
 public class ActivitySelfReport extends AppCompatActivity {
     private static final String TAG = ActivitySelfReport.class.getSimpleName();
     String id;
+    String type;
     DataKitAPI dataKitAPI;
+    boolean flag=false;
+    Handler handler;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         ConfigManager configManager = new ConfigManager(this);
+        handler=new Handler();
         if (configManager == null || configManager.getConfig() == null || !configManager.isValid() || !getIntent().hasExtra("id"))
             finish();
         else {
             id = getIntent().getStringExtra("id");
+            type = getIntent().getStringExtra("type");
             for (int i = 0; i < configManager.getConfig().size(); i++) {
-                if (configManager.getConfig().get(i).getId().equals(id)) {
+                if (configManager.getConfig().get(i).getId().equals(id) && configManager.getConfig().get(i).getType().equals(type)) {
                     prepareDatakit(configManager.getConfig().get(i));
                     break;
                 }
@@ -74,6 +80,7 @@ public class ActivitySelfReport extends AppCompatActivity {
     }
     private void prepareDatakit(final Config config){
         dataKitAPI= DataKitAPI.getInstance(this);
+        flag=dataKitAPI.isConnected();
         try {
             dataKitAPI.connect(new OnConnectionListener() {
                 @Override
@@ -93,12 +100,10 @@ public class ActivitySelfReport extends AppCompatActivity {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     if (which == DialogInterface.BUTTON_POSITIVE) {
+                        DataTypeJSONObject dataTypeJSONObject=new DataTypeJSONObject(DateTime.getDateTime(), null);
                         Toast.makeText(ActivitySelfReport.this, config.getName()+" saved...", Toast.LENGTH_SHORT).show();
-                        try {
-                            writeToDataKit(config.getDatasource(), parameters.get("s2"));
-                        } catch (DataKitException e) {
-                            e.printStackTrace();
-                        }
+                        RunnableInsert runnableInsert=new RunnableInsert(dataKitAPI, config.getDatasource().toDataSourceBuilder(), dataTypeJSONObject);
+                        handler.post(runnableInsert);
                     }
                     finish();
                 }
@@ -116,25 +121,16 @@ public class ActivitySelfReport extends AppCompatActivity {
                         finish();
                     } else {
                         Toast.makeText(ActivitySelfReport.this, config.getName()+" saved...", Toast.LENGTH_SHORT).show();
-                        try {
-                            writeToDataKit(config.getDatasource(), parameters.get("s2") + " (" + items[which] + ")");
-                        } catch (DataKitException e) {
-                            e.printStackTrace();
-                        }
+                            DataTypeJSONObject dataTypeJSONObject=new DataTypeJSONObject(DateTime.getDateTime(), null);
+                            Toast.makeText(ActivitySelfReport.this, config.getName()+" saved...", Toast.LENGTH_SHORT).show();
+                            RunnableInsert runnableInsert=new RunnableInsert(dataKitAPI, config.getDatasource().toDataSourceBuilder(), dataTypeJSONObject);
+                            handler.post(runnableInsert);
+//                            writeToDataKit(config.getDatasource(), parameters.get("s2") + " (" + items[which] + ")");
                         finish();
                     }
                 }
             });
         }
-    }
-    private boolean writeToDataKit(DataSource dataSource, String msg) throws DataKitException {
-        if (!dataKitAPI.isConnected()) return false;
-        Gson gson = new Gson();
-        JsonObject sample = new JsonParser().parse(gson.toJson(new Event(Event.SMOKING, Event.TYPE_SELF_REPORT, msg))).getAsJsonObject();
-        DataTypeJSONObject dataTypeJSONObject = new DataTypeJSONObject(DateTime.getDateTime(), sample);
-        DataSourceClient dataSourceClient=dataKitAPI.register(dataSource.toDataSourceBuilder());
-        dataKitAPI.insert(dataSourceClient, dataTypeJSONObject);
-        return true;
     }
     @Override
     public void onDestroy(){
