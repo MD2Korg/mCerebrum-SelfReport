@@ -1,21 +1,9 @@
 package org.md2k.selfreport;
 
-import android.content.Context;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.internal.Excluder;
-
 import org.md2k.datakitapi.DataKitAPI;
 import org.md2k.datakitapi.datatype.DataTypeJSONObject;
-import org.md2k.datakitapi.exception.DataKitException;
-import org.md2k.datakitapi.source.datasource.DataSource;
 import org.md2k.datakitapi.source.datasource.DataSourceBuilder;
 import org.md2k.datakitapi.source.datasource.DataSourceClient;
-import org.md2k.datakitapi.time.DateTime;
-import org.md2k.selfreport.config.Config;
-import org.md2k.utilities.data_format.Event;
 
 /**
  * Copyright (c) 2015, The University of Memphis, MD2K Center
@@ -43,25 +31,28 @@ import org.md2k.utilities.data_format.Event;
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-public class RunnableInsert implements Runnable{
+public class RunnableInsert implements Runnable {
     DataKitAPI dataKitAPI;
     DataTypeJSONObject dataTypeJSONObject;
     DataSourceBuilder dataSourceBuilder;
-    public RunnableInsert(DataKitAPI dataKitAPI, DataSourceBuilder dataSourceBuilder, DataTypeJSONObject dataTypeJSONObject){
-        this.dataKitAPI=dataKitAPI;
-        this.dataSourceBuilder=dataSourceBuilder;
-        this.dataTypeJSONObject=dataTypeJSONObject;
+
+    public RunnableInsert(DataKitAPI dataKitAPI, DataSourceBuilder dataSourceBuilder, DataTypeJSONObject dataTypeJSONObject) {
+        this.dataKitAPI = dataKitAPI;
+        this.dataSourceBuilder = dataSourceBuilder;
+        this.dataTypeJSONObject = dataTypeJSONObject;
     }
+
     @Override
     public void run() {
         writeToDataKit();
     }
-    private boolean writeToDataKit(){
+
+    private boolean writeToDataKit() {
         try {
             DataSourceClient dataSourceClient = dataKitAPI.register(dataSourceBuilder);
             dataKitAPI.insert(dataSourceClient, dataTypeJSONObject);
             return true;
-        }catch (Exception e){
+        } catch (Exception e) {
             return false;
         }
     }

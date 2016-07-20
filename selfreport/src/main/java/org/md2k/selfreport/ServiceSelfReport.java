@@ -5,6 +5,10 @@ import android.content.Intent;
 import android.os.Handler;
 import android.os.IBinder;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import org.md2k.datakitapi.DataKitAPI;
 import org.md2k.datakitapi.datatype.DataType;
 import org.md2k.datakitapi.datatype.DataTypeJSONObject;
@@ -17,6 +21,7 @@ import org.md2k.datakitapi.time.DateTime;
 import org.md2k.selfreport.config.Config;
 import org.md2k.selfreport.config.ConfigManager;
 import org.md2k.utilities.Report.Log;
+import org.md2k.utilities.data_format.Event;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -84,6 +89,12 @@ public class ServiceSelfReport extends Service {
             dataSourceClients = new ArrayList<>(configs.size());
         return configs.size() != 0;
     }
+    private DataTypeJSONObject prepareData(Event event){
+        Gson gson=new Gson();
+        JsonParser jsonParser = new JsonParser();
+        JsonObject jsonObject = (JsonObject)jsonParser.parse(gson.toJson(event));
+        return new DataTypeJSONObject(DateTime.getDateTime(), jsonObject);
+    }
 
     Runnable runnableSubscribe = new Runnable() {
         @Override
@@ -93,11 +104,11 @@ public class ServiceSelfReport extends Service {
                 for (int i = 0; i < configs.size(); i++) {
                     if (dataSourceClients.get(i) == null) {
                         DataSourceBuilder dataSourceBuilder = configs.get(i).getListen_datasource().toDataSourceBuilder();
-                        ArrayList<DataSourceClient> dataSourceClientAll = DataKitAPI.getInstance(ServiceSelfReport.this).find(dataSourceBuilder);
+                        final ArrayList<DataSourceClient> dataSourceClientAll = DataKitAPI.getInstance(ServiceSelfReport.this).find(dataSourceBuilder);
                         if (dataSourceClientAll.size() >= 1) {
                             dataSourceClients.set(i, dataSourceClientAll.get(0));
                             final int finalI = i;
-                            DataKitAPI.getInstance(ServiceSelfReport.this).subscribe(dataSourceClients.get(0), new OnReceiveListener() {
+                            DataKitAPI.getInstance(ServiceSelfReport.this).subscribe(dataSourceClientAll.get(0), new OnReceiveListener() {
                                 @Override
                                 public void onReceived(DataType dataType) {
                                     HashMap<String, String> parameters=configs.get(finalI).getParameters();
@@ -105,8 +116,11 @@ public class ServiceSelfReport extends Service {
                                     int maxTime=Integer.getInteger(parameters.get("s2"));
                                     Random rn = new Random();
                                     long answer = rn.nextInt(maxTime-minTime) + minTime;
-                                    DataTypeJSONObject dataTypeJSONObject=new DataTypeJSONObject(DateTime.getDateTime(), null);
-                                    RunnableInsert runnableInsert=new RunnableInsert(dataKitAPI, configs.get(finalI).getDatasource().toDataSourceBuilder(), dataTypeJSONObject);
+                                    Event event=new Event(configs.get(finalI).getType(), configs.get(finalI).getId(), configs.get(finalI).getName());
+                                    event.addParameters("receive_time", String.valueOf(dataType.getDateTime()));
+                                    event.addParameters("datasource_type",dataSourceClientAll.get(0).getDataSource().getType());
+                                    event.addParameters("trigger_time",String.valueOf(DateTime.getDateTime()+answer));
+                                    RunnableInsert runnableInsert=new RunnableInsert(dataKitAPI, configs.get(finalI).getDatasource().toDataSourceBuilder(), prepareData(event));
                                     handler.postDelayed(runnableInsert, answer);
                                 }
                             });

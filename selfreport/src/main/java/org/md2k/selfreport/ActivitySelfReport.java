@@ -3,7 +3,6 @@ package org.md2k.selfreport;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
-import android.provider.ContactsContract;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.Toast;
 
@@ -15,8 +14,6 @@ import org.md2k.datakitapi.DataKitAPI;
 import org.md2k.datakitapi.datatype.DataTypeJSONObject;
 import org.md2k.datakitapi.exception.DataKitException;
 import org.md2k.datakitapi.messagehandler.OnConnectionListener;
-import org.md2k.datakitapi.source.datasource.DataSource;
-import org.md2k.datakitapi.source.datasource.DataSourceClient;
 import org.md2k.datakitapi.time.DateTime;
 import org.md2k.selfreport.config.Config;
 import org.md2k.selfreport.config.ConfigManager;
@@ -57,14 +54,14 @@ public class ActivitySelfReport extends AppCompatActivity {
     String id;
     String type;
     DataKitAPI dataKitAPI;
-    boolean flag=false;
+    boolean flag = false;
     Handler handler;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         ConfigManager configManager = new ConfigManager(this);
-        handler=new Handler();
+        handler = new Handler();
         if (configManager == null || configManager.getConfig() == null || !configManager.isValid() || !getIntent().hasExtra("id"))
             finish();
         else {
@@ -72,15 +69,16 @@ public class ActivitySelfReport extends AppCompatActivity {
             type = getIntent().getStringExtra("type");
             for (int i = 0; i < configManager.getConfig().size(); i++) {
                 if (configManager.getConfig().get(i).getId().equals(id) && configManager.getConfig().get(i).getType().equals(type)) {
-                    prepareDatakit(configManager.getConfig().get(i));
+                    prepareDataKit(configManager.getConfig().get(i));
                     break;
                 }
             }
         }
     }
-    private void prepareDatakit(final Config config){
-        dataKitAPI= DataKitAPI.getInstance(this);
-        flag=dataKitAPI.isConnected();
+
+    private void prepareDataKit(final Config config) {
+        dataKitAPI = DataKitAPI.getInstance(this);
+        flag = dataKitAPI.isConnected();
         try {
             dataKitAPI.connect(new OnConnectionListener() {
                 @Override
@@ -91,18 +89,25 @@ public class ActivitySelfReport extends AppCompatActivity {
         } catch (DataKitException e) {
             finish();
         }
-
     }
-    void showAlert(final Config config){
+    private DataTypeJSONObject prepareData(Event event){
+        Gson gson=new Gson();
+        JsonParser jsonParser = new JsonParser();
+        JsonObject jsonObject = (JsonObject)jsonParser.parse(gson.toJson(event));
+        return new DataTypeJSONObject(DateTime.getDateTime(), jsonObject);
+    }
+
+    void showAlert(final Config config) {
         final HashMap<String, String> parameters = config.getParameters();
         if (parameters.size() == 2) {
             AlertDialogs.AlertDialog(this, parameters.get("s1"), parameters.get("s2"), org.md2k.utilities.R.drawable.ic_smoking_teal_48dp, "Ok", "Cancel", null, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     if (which == DialogInterface.BUTTON_POSITIVE) {
-                        DataTypeJSONObject dataTypeJSONObject=new DataTypeJSONObject(DateTime.getDateTime(), null);
-                        Toast.makeText(ActivitySelfReport.this, config.getName()+" saved...", Toast.LENGTH_SHORT).show();
-                        RunnableInsert runnableInsert=new RunnableInsert(dataKitAPI, config.getDatasource().toDataSourceBuilder(), dataTypeJSONObject);
+                        Toast.makeText(ActivitySelfReport.this, config.getName() + " saved...", Toast.LENGTH_SHORT).show();
+                        Event event=new Event(config.getType(), config.getId(), config.getName());
+                        DataTypeJSONObject dataTypeJSONObject=prepareData(event);
+                        RunnableInsert runnableInsert = new RunnableInsert(dataKitAPI, config.getDatasource().toDataSourceBuilder(), dataTypeJSONObject);
                         handler.post(runnableInsert);
                     }
                     finish();
@@ -118,23 +123,23 @@ public class ActivitySelfReport extends AppCompatActivity {
                 public void onClick(DialogInterface dialog, int which) {
                     if (which == -1) {
                         dialog.dismiss();
-                        finish();
                     } else {
-                        Toast.makeText(ActivitySelfReport.this, config.getName()+" saved...", Toast.LENGTH_SHORT).show();
-                            DataTypeJSONObject dataTypeJSONObject=new DataTypeJSONObject(DateTime.getDateTime(), null);
-                            Toast.makeText(ActivitySelfReport.this, config.getName()+" saved...", Toast.LENGTH_SHORT).show();
-                            RunnableInsert runnableInsert=new RunnableInsert(dataKitAPI, config.getDatasource().toDataSourceBuilder(), dataTypeJSONObject);
-                            handler.post(runnableInsert);
-//                            writeToDataKit(config.getDatasource(), parameters.get("s2") + " (" + items[which] + ")");
-                        finish();
+                        Toast.makeText(ActivitySelfReport.this, config.getName() + " saved...", Toast.LENGTH_SHORT).show();
+                        Event event=new Event(config.getType(), config.getId(), config.getName()+"("+items[which]+")");
+                        event.addParameters("option", items[which]);
+                        DataTypeJSONObject dataTypeJSONObject=prepareData(event);
+                        RunnableInsert runnableInsert = new RunnableInsert(dataKitAPI, config.getDatasource().toDataSourceBuilder(), dataTypeJSONObject);
+                        handler.post(runnableInsert);
                     }
+                    finish();
                 }
             });
         }
     }
+
     @Override
-    public void onDestroy(){
-        if(dataKitAPI!=null)
+    public void onDestroy() {
+        if (dataKitAPI != null)
             dataKitAPI.disconnect();
         super.onDestroy();
     }
