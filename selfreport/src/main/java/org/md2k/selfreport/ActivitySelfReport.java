@@ -62,11 +62,11 @@ public class ActivitySelfReport extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         ConfigManager configManager = new ConfigManager(this);
         handler = new Handler();
-        if (configManager == null || configManager.getConfig() == null || !configManager.isValid() || !getIntent().hasExtra("id"))
+        if (configManager == null || configManager.getConfig() == null || !configManager.isValid() || !getIntent().hasExtra("self_report_id") || !getIntent().hasExtra("self_report_type"))
             finish();
         else {
-            id = getIntent().getStringExtra("id");
-            type = getIntent().getStringExtra("type");
+            id = getIntent().getStringExtra("self_report_id");
+            type = getIntent().getStringExtra("self_report_type");
             for (int i = 0; i < configManager.getConfig().size(); i++) {
                 if (configManager.getConfig().get(i).getId().equals(id) && configManager.getConfig().get(i).getType().equals(type)) {
                     prepareDataKit(configManager.getConfig().get(i));

@@ -81,7 +81,7 @@ public class ServiceSelfReport extends Service {
         if (configManager == null || configManager.getConfig() == null || !configManager.isValid())
             return false;
         for (int i = 0; i < configManager.getConfig().size(); i++) {
-            if (configManager.getConfig().get(i).getType().equals(SYSTEM)) {
+            if (configManager.getConfig().get(i).getId().equals(SYSTEM)) {
                 configs.add(configManager.getConfig().get(i));
             }
         }
