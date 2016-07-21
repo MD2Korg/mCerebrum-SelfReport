@@ -1,9 +1,11 @@
 package org.md2k.selfreport;
 
 import android.app.Service;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.IBinder;
+import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -21,6 +23,7 @@ import org.md2k.datakitapi.time.DateTime;
 import org.md2k.selfreport.config.Config;
 import org.md2k.selfreport.config.ConfigManager;
 import org.md2k.utilities.Report.Log;
+import org.md2k.utilities.UI.AlertDialogs;
 import org.md2k.utilities.data_format.Event;
 
 import java.util.ArrayList;
@@ -57,42 +60,119 @@ import java.util.Random;
 public class ServiceSelfReport extends Service {
     private static final String TAG = ServiceSelfReport.class.getSimpleName();
     public static final String SYSTEM = "system";
+    public static final String ID = "id";
+    public static final String TYPE = "type";
     public static final long REPEAT_TIME = 10000;
-    DataKitAPI dataKitAPI;
     ConfigManager configManager;
     Handler handler;
-    ArrayList<Config> configs;
-    ArrayList<DataSourceClient> dataSourceClients;
-    HashMap<Integer, Integer> hashMap;
+    DataSourceClient[] dataSourceClients;
+    boolean isAlreadyShown;
 
+    @Override
     public void onCreate() {
         super.onCreate();
-        Log.d(TAG, "onCreate()");
+        Log.d(TAG, "onCreate()...");
         handler = new Handler();
-        hashMap=new HashMap<>();
-
         configManager = new ConfigManager(this);
-        if (isValid())
+        Log.d(TAG, "onCreate()...configManager..isValid=" + configManager.isValid());
+        if (configManager.isValid()) {
+            Log.d(TAG, "onCreate()...configManager..size=" + configManager.getConfig().size());
+            dataSourceClients = new DataSourceClient[configManager.getConfig().size()];
+            for(int i=0;i<configManager.getConfig().size();i++)
+                dataSourceClients[i]=null;
             connectDataKit();
+        }
+        isAlreadyShown=false;
     }
 
-    private boolean isValid() {
-        configs = new ArrayList<>();
-        if (configManager == null || configManager.getConfig() == null || !configManager.isValid())
-            return false;
-        for (int i = 0; i < configManager.getConfig().size(); i++) {
-            if (configManager.getConfig().get(i).getId().equals(SYSTEM)) {
-                configs.add(configManager.getConfig().get(i));
-            }
+    private void connectDataKit() {
+        DataKitAPI dataKitAPI = DataKitAPI.getInstance(getApplicationContext());
+        try {
+            dataKitAPI.connect(new OnConnectionListener() {
+                @Override
+                public void onConnected() {
+                    Log.d(TAG, "DataKit connected...");
+                    registerAll();
+                    handler.post(runnableSubscribe);
+                }
+            });
+        } catch (DataKitException e) {
+            stopSelf();
         }
-        if (configs.size() != 0)
-            dataSourceClients = new ArrayList<>(configs.size());
-        return configs.size() != 0;
     }
-    private DataTypeJSONObject prepareData(Event event){
-        Gson gson=new Gson();
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d(TAG, "onStartCommand()...intent=" + intent);
+        DataKitAPI dataKitAPI = DataKitAPI.getInstance(this);
+        if (intent == null || !intent.hasExtra(ServiceSelfReport.ID) || !intent.hasExtra(ServiceSelfReport.TYPE))
+            return START_STICKY;
+        String id = intent.getStringExtra(ID);
+        String type = intent.getStringExtra(TYPE);
+        Log.d(TAG, "onStartCommand()...id=" + id + " type=" + type);
+        if(!isAlreadyShown)
+            showAlert(configManager.getConfig(id, type));
+        return START_STICKY; // or whatever your flag
+    }
+
+    void registerAll() {
+        try {
+            Log.d(TAG, "registerAll()...");
+            DataKitAPI dataKitAPI = DataKitAPI.getInstance(ServiceSelfReport.this);
+            for (int i = 0; i < configManager.getConfig().size(); i++) {
+                DataSourceBuilder dataSourceBuilder = configManager.getConfig().get(i).getDatasource().toDataSourceBuilder();
+                dataKitAPI.register(dataSourceBuilder);
+            }
+        } catch (Exception ignored) {
+
+        }
+    }
+
+    void showAlert(final Config config) {
+        Log.d(TAG, "showAlert()...");
+        final HashMap<String, String> parameters = config.getParameters();
+        if (parameters.size() == 2) {
+            Log.d(TAG, "showAlert()...YesNo");
+            AlertDialogs.AlertDialog(this, parameters.get("s1"), parameters.get("s2"), org.md2k.utilities.R.drawable.ic_smoking_teal_48dp, "Ok", "Cancel", null, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    if (which == DialogInterface.BUTTON_POSITIVE) {
+                        isAlreadyShown=false;
+                        Toast.makeText(ServiceSelfReport.this, config.getName() + " saved...", Toast.LENGTH_SHORT).show();
+                        Event event = new Event(config.getType(), config.getId(), config.getName());
+                        DataTypeJSONObject dataTypeJSONObject = prepareData(event);
+                        RunnableInsert runnableInsert = new RunnableInsert(ServiceSelfReport.this, config.getDatasource().toDataSourceBuilder(), dataTypeJSONObject);
+                        handler.post(runnableInsert);
+                    }
+                }
+            });
+        } else {
+            final String[] items = new String[parameters.size() - 2];
+            for (int i = 2; i < parameters.size(); i++)
+                items[i - 2] = (parameters.get("s" + Integer.toString(i + 1)));
+            Log.d(TAG, "showAlert()...MultipleChoice..");
+            AlertDialogs.AlertDialogSingleChoice(this, parameters.get("s2"), items, 0, "Ok", "Cancel", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    if (which == -1) {
+                        dialog.dismiss();
+                    } else {
+                        Toast.makeText(ServiceSelfReport.this, config.getName() + " saved...", Toast.LENGTH_SHORT).show();
+                        Event event = new Event(config.getType(), config.getId(), config.getName() + "(" + items[which] + ")");
+                        event.addParameters("option", items[which]);
+                        DataTypeJSONObject dataTypeJSONObject = prepareData(event);
+                        RunnableInsert runnableInsert = new RunnableInsert(ServiceSelfReport.this, config.getDatasource().toDataSourceBuilder(), dataTypeJSONObject);
+                        handler.post(runnableInsert);
+                    }
+                }
+            });
+        }
+    }
+
+    private DataTypeJSONObject prepareData(Event event) {
+        Gson gson = new Gson();
         JsonParser jsonParser = new JsonParser();
-        JsonObject jsonObject = (JsonObject)jsonParser.parse(gson.toJson(event));
+        JsonObject jsonObject = (JsonObject) jsonParser.parse(gson.toJson(event));
         return new DataTypeJSONObject(DateTime.getDateTime(), jsonObject);
     }
 
@@ -101,32 +181,34 @@ public class ServiceSelfReport extends Service {
         public void run() {
             try {
                 boolean flag = true;
-                for (int i = 0; i < configs.size(); i++) {
-                    if (dataSourceClients.get(i) == null) {
-                        DataSourceBuilder dataSourceBuilder = configs.get(i).getListen_datasource().toDataSourceBuilder();
-                        final ArrayList<DataSourceClient> dataSourceClientAll = DataKitAPI.getInstance(ServiceSelfReport.this).find(dataSourceBuilder);
-                        if (dataSourceClientAll.size() >= 1) {
-                            dataSourceClients.set(i, dataSourceClientAll.get(0));
-                            final int finalI = i;
-                            DataKitAPI.getInstance(ServiceSelfReport.this).subscribe(dataSourceClientAll.get(0), new OnReceiveListener() {
-                                @Override
-                                public void onReceived(DataType dataType) {
-                                    HashMap<String, String> parameters=configs.get(finalI).getParameters();
-                                    int minTime=Integer.getInteger(parameters.get("s1"));
-                                    int maxTime=Integer.getInteger(parameters.get("s2"));
-                                    Random rn = new Random();
-                                    long answer = rn.nextInt(maxTime-minTime) + minTime;
-                                    Event event=new Event(configs.get(finalI).getType(), configs.get(finalI).getId(), configs.get(finalI).getName());
-                                    event.addParameters("receive_time", String.valueOf(dataType.getDateTime()));
-                                    event.addParameters("datasource_type",dataSourceClientAll.get(0).getDataSource().getType());
-                                    event.addParameters("trigger_time",String.valueOf(DateTime.getDateTime()+answer));
-                                    RunnableInsert runnableInsert=new RunnableInsert(dataKitAPI, configs.get(finalI).getDatasource().toDataSourceBuilder(), prepareData(event));
-                                    handler.postDelayed(runnableInsert, answer);
-                                }
-                            });
-                        } else
-                            flag = false;
+                for (int i = 0; i < configManager.getConfig().size(); i++) {
+                    if (!configManager.getConfig().get(i).getId().equals(SYSTEM)) continue;
+                    if (dataSourceClients[i] != null) continue;
+                    DataSourceBuilder dataSourceBuilder = configManager.getConfig().get(i).getListen_datasource().toDataSourceBuilder();
+                    final ArrayList<DataSourceClient> dataSourceClientAll = DataKitAPI.getInstance(ServiceSelfReport.this).find(dataSourceBuilder);
+                    if (dataSourceClientAll.size() == 0) {
+                        flag = false;
+                        continue;
                     }
+                    dataSourceClients[i] = dataSourceClientAll.get(0);
+                    final int finalI = i;
+                    DataKitAPI.getInstance(ServiceSelfReport.this).subscribe(dataSourceClientAll.get(0), new OnReceiveListener() {
+                        @Override
+                        public void onReceived(DataType dataType) {
+                            HashMap<String, String> parameters = configManager.getConfig().get(finalI).getParameters();
+                            int minTime = Integer.getInteger(parameters.get("s1"));
+                            int maxTime = Integer.getInteger(parameters.get("s2"));
+                            Random rn = new Random();
+                            long answer = rn.nextInt(maxTime - minTime) + minTime;
+                            Event event = new Event(configManager.getConfig().get(finalI).getType(), configManager.getConfig().get(finalI).getId(), configManager.getConfig().get(finalI).getName());
+                            event.addParameters("receive_time", String.valueOf(dataType.getDateTime()));
+                            event.addParameters("datasource_type", dataSourceClientAll.get(0).getDataSource().getType());
+                            event.addParameters("trigger_time", String.valueOf(DateTime.getDateTime() + answer));
+                            RunnableInsert runnableInsert = new RunnableInsert(ServiceSelfReport.this, configManager.getConfig().get(finalI).getDatasource().toDataSourceBuilder(), prepareData(event));
+                            handler.postDelayed(runnableInsert, answer);
+                        }
+                    });
+
                 }
                 if (!flag)
                     handler.postDelayed(this, REPEAT_TIME);
@@ -136,27 +218,16 @@ public class ServiceSelfReport extends Service {
         }
     };
 
-    private void connectDataKit() {
-        dataKitAPI = DataKitAPI.getInstance(getApplicationContext());
-        try {
-            dataKitAPI.connect(new OnConnectionListener() {
-                @Override
-                public void onConnected() {
-                    handler.post(runnableSubscribe);
-                }
-            });
-        } catch (DataKitException e) {
-            stopSelf();
-        }
-    }
 
     private void disconnectDataKit() {
         try {
             DataKitAPI dataKitAPI = DataKitAPI.getInstance(this);
             if (dataKitAPI != null && dataKitAPI.isConnected()) {
-                for (int i = 0; i < dataSourceClients.size(); i++) {
-                    if (dataSourceClients.get(i) != null)
-                        dataKitAPI.unsubscribe(dataSourceClients.get(i));
+                for (int i = 0; i < dataSourceClients.length; i++) {
+                    if (dataSourceClients[i] != null) {
+                        dataKitAPI.unsubscribe(dataSourceClients[i]);
+                        dataSourceClients[i] = null;
+                    }
                 }
                 dataKitAPI.disconnect();
             }
@@ -167,9 +238,12 @@ public class ServiceSelfReport extends Service {
 
     @Override
     public void onDestroy() {
+        Log.d(TAG, "onDestroy()...");
         disconnectDataKit();
+        Log.d(TAG, "...onDestroy()");
         super.onDestroy();
     }
+
     @Override
     public IBinder onBind(Intent intent) {
         throw new UnsupportedOperationException("Not yet implemented");

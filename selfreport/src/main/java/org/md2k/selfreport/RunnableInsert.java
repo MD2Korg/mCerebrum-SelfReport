@@ -1,9 +1,12 @@
 package org.md2k.selfreport;
 
+import android.content.Context;
+
 import org.md2k.datakitapi.DataKitAPI;
 import org.md2k.datakitapi.datatype.DataTypeJSONObject;
 import org.md2k.datakitapi.source.datasource.DataSourceBuilder;
 import org.md2k.datakitapi.source.datasource.DataSourceClient;
+import org.md2k.utilities.Report.Log;
 
 /**
  * Copyright (c) 2015, The University of Memphis, MD2K Center
@@ -32,12 +35,14 @@ import org.md2k.datakitapi.source.datasource.DataSourceClient;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 public class RunnableInsert implements Runnable {
-    DataKitAPI dataKitAPI;
+    private static final String TAG = RunnableInsert.class.getSimpleName();
     DataTypeJSONObject dataTypeJSONObject;
     DataSourceBuilder dataSourceBuilder;
+    Context context;
 
-    public RunnableInsert(DataKitAPI dataKitAPI, DataSourceBuilder dataSourceBuilder, DataTypeJSONObject dataTypeJSONObject) {
-        this.dataKitAPI = dataKitAPI;
+    public RunnableInsert(Context context, DataSourceBuilder dataSourceBuilder, DataTypeJSONObject dataTypeJSONObject) {
+        Log.d(TAG,"RunnableInsert...");
+        this.context=context;
         this.dataSourceBuilder = dataSourceBuilder;
         this.dataTypeJSONObject = dataTypeJSONObject;
     }
@@ -49,6 +54,8 @@ public class RunnableInsert implements Runnable {
 
     private boolean writeToDataKit() {
         try {
+            Log.d(TAG,"insert...");
+            DataKitAPI dataKitAPI = DataKitAPI.getInstance(context);
             DataSourceClient dataSourceClient = dataKitAPI.register(dataSourceBuilder);
             dataKitAPI.insert(dataSourceClient, dataTypeJSONObject);
             return true;

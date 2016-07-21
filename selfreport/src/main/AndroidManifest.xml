@@ -36,21 +36,15 @@
             </intent-filter>
             >
         </activity>
-        <activity
-            android:name="org.md2k.selfreport.ActivitySelfReport"
-            android:enabled="true"
-            android:exported="true"
-            android:label="Self Report"
-            android:screenOrientation="portrait">
-            <intent-filter>
-                <action android:name="org.md2k.selfreport.ActivitySelfReport" />
-            </intent-filter>
-            >
-        </activity>
+
         <service
             android:name=".ServiceSelfReport"
             android:enabled="true"
             android:exported="true"></service>
+        <meta-data
+            android:name="io.fabric.ApiKey"
+            android:value="1cad146ed866fa3d49c3bc8376ff52af7d9970da" />
     </application>
 
+    <uses-permission android:name="android.permission.INTERNET" />
 </manifest>

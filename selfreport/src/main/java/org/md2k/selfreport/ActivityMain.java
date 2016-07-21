@@ -7,6 +7,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.crashlytics.android.Crashlytics;
+import io.fabric.sdk.android.Fabric;
 import org.md2k.utilities.UI.ActivityAbout;
 import org.md2k.utilities.UI.ActivityCopyright;
 
@@ -39,14 +41,25 @@ import org.md2k.utilities.UI.ActivityCopyright;
 
 public class ActivityMain extends AppCompatActivity {
     private static final String TAG = ActivityMain.class.getSimpleName();
+    String id, type;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        setContentView(R.layout.activity_main);
-        if (getSupportActionBar() != null)
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        Fabric.with(this, new Crashlytics());
+        if(getIntent().hasExtra(ServiceSelfReport.ID) && getIntent().hasExtra(ServiceSelfReport.TYPE)) {
+            id = getIntent().getStringExtra(ServiceSelfReport.ID);
+            type = getIntent().getStringExtra(ServiceSelfReport.TYPE);
+            Intent intent = new Intent(this, ServiceSelfReport.class);
+            intent.putExtra(ServiceSelfReport.ID, id);
+            intent.putExtra(ServiceSelfReport.TYPE, type);
+            startService(intent);
+            finish();
+        }else {
+            setContentView(R.layout.activity_main);
+            if (getSupportActionBar() != null)
+                getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
     }
 
     @Override

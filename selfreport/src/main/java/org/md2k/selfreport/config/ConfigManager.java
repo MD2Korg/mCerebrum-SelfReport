@@ -68,6 +68,19 @@ public class ConfigManager {
     public ArrayList<Config> getConfig() {
         return config;
     }
+    public Config getConfig(String id, String type){
+        for(int i=0;i<config.size();i++)
+            if(config.get(i).getId().equals(id) && config.get(i).getType().equals(type))
+                return config.get(i);
+        return null;
+    }
+    public ArrayList<Config> getConfig(String id){
+        ArrayList<Config> configs=new ArrayList<>();
+        for(int i=0;i<config.size();i++)
+            if(config.get(i).getId().equals(id))
+                configs.add(config.get(i));
+        return configs;
+    }
 
     public boolean isValid() {
         return valid;
