@@ -31,4 +31,5 @@ import android.os.Environment;
 public class Constants {
     public static final String CONFIG_FILENAME = "config.json";
     public static final String CONFIG_DIRECTORY= Environment.getExternalStorageDirectory().getAbsolutePath() + "/mCerebrum/org.md2k.selfreport/";
+    public static final String INTENT_STOP = "stop";
 }

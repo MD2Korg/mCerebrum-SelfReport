@@ -1,10 +1,14 @@
 package org.md2k.selfreport;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.IBinder;
+import android.support.v4.content.LocalBroadcastManager;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
@@ -72,6 +76,7 @@ public class ServiceSelfReport extends Service {
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "onCreate()...");
+        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver, new IntentFilter(Constants.INTENT_STOP));
         handler = new Handler();
         configManager = new ConfigManager(this);
         Log.d(TAG, "onCreate()...configManager..isValid=" + configManager.isValid());
@@ -123,8 +128,8 @@ public class ServiceSelfReport extends Service {
                 DataSourceBuilder dataSourceBuilder = configManager.getConfig().get(i).getDatasource().toDataSourceBuilder();
                 dataKitAPI.register(dataSourceBuilder);
             }
-        } catch (Exception ignored) {
-
+        } catch (Exception e) {
+            stopSelf();
         }
     }
 
@@ -238,6 +243,8 @@ public class ServiceSelfReport extends Service {
 
     @Override
     public void onDestroy() {
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(
+                mMessageReceiver);
         Log.d(TAG, "onDestroy()...");
         disconnectDataKit();
         Log.d(TAG, "...onDestroy()");
@@ -248,4 +255,11 @@ public class ServiceSelfReport extends Service {
     public IBinder onBind(Intent intent) {
         throw new UnsupportedOperationException("Not yet implemented");
     }
+    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            stopSelf();
+        }
+    };
+
 }

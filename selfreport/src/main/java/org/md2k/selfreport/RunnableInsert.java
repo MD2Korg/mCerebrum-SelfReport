@@ -1,6 +1,8 @@
 package org.md2k.selfreport;
 
 import android.content.Context;
+import android.content.Intent;
+import android.support.v4.content.LocalBroadcastManager;
 
 import org.md2k.datakitapi.DataKitAPI;
 import org.md2k.datakitapi.datatype.DataTypeJSONObject;
@@ -60,6 +62,7 @@ public class RunnableInsert implements Runnable {
             dataKitAPI.insert(dataSourceClient, dataTypeJSONObject);
             return true;
         } catch (Exception e) {
+            LocalBroadcastManager.getInstance(context).sendBroadcast(new Intent(Constants.INTENT_STOP));
             return false;
         }
     }
