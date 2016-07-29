@@ -83,11 +83,11 @@ public class ServiceSelfReport extends Service {
         if (configManager.isValid()) {
             Log.d(TAG, "onCreate()...configManager..size=" + configManager.getConfig().size());
             dataSourceClients = new DataSourceClient[configManager.getConfig().size()];
-            for(int i=0;i<configManager.getConfig().size();i++)
-                dataSourceClients[i]=null;
+            for (int i = 0; i < configManager.getConfig().size(); i++)
+                dataSourceClients[i] = null;
             connectDataKit();
         }
-        isAlreadyShown=false;
+        isAlreadyShown = false;
     }
 
     private void connectDataKit() {
@@ -115,7 +115,7 @@ public class ServiceSelfReport extends Service {
         String id = intent.getStringExtra(ID);
         String type = intent.getStringExtra(TYPE);
         Log.d(TAG, "onStartCommand()...id=" + id + " type=" + type);
-        if(!isAlreadyShown)
+        if (!isAlreadyShown)
             showAlert(configManager.getConfig(id, type));
         return START_STICKY; // or whatever your flag
     }
@@ -142,7 +142,7 @@ public class ServiceSelfReport extends Service {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     if (which == DialogInterface.BUTTON_POSITIVE) {
-                        isAlreadyShown=false;
+                        isAlreadyShown = false;
                         Toast.makeText(ServiceSelfReport.this, config.getName() + " saved...", Toast.LENGTH_SHORT).show();
                         Event event = new Event(config.getType(), config.getId(), config.getName());
                         DataTypeJSONObject dataTypeJSONObject = prepareData(event);
@@ -199,18 +199,24 @@ public class ServiceSelfReport extends Service {
                     final int finalI = i;
                     DataKitAPI.getInstance(ServiceSelfReport.this).subscribe(dataSourceClientAll.get(0), new OnReceiveListener() {
                         @Override
-                        public void onReceived(DataType dataType) {
-                            HashMap<String, String> parameters = configManager.getConfig().get(finalI).getParameters();
-                            int minTime = Integer.getInteger(parameters.get("s1"));
-                            int maxTime = Integer.getInteger(parameters.get("s2"));
-                            Random rn = new Random();
-                            long answer = rn.nextInt(maxTime - minTime) + minTime;
-                            Event event = new Event(configManager.getConfig().get(finalI).getType(), configManager.getConfig().get(finalI).getId(), configManager.getConfig().get(finalI).getName());
-                            event.addParameters("receive_time", String.valueOf(dataType.getDateTime()));
-                            event.addParameters("datasource_type", dataSourceClientAll.get(0).getDataSource().getType());
-                            event.addParameters("trigger_time", String.valueOf(DateTime.getDateTime() + answer));
-                            RunnableInsert runnableInsert = new RunnableInsert(ServiceSelfReport.this, configManager.getConfig().get(finalI).getDatasource().toDataSourceBuilder(), prepareData(event));
-                            handler.postDelayed(runnableInsert, answer);
+                        public void onReceived(final DataType dataType) {
+                            Thread t = new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    HashMap<String, String> parameters = configManager.getConfig().get(finalI).getParameters();
+                                    int minTime = Integer.parseInt(parameters.get("s1"));
+                                    int maxTime = Integer.parseInt(parameters.get("s2"));
+                                    Random rn = new Random();
+                                    long answer = rn.nextInt(maxTime - minTime) + minTime;
+                                    Event event = new Event(configManager.getConfig().get(finalI).getType(), configManager.getConfig().get(finalI).getId(), configManager.getConfig().get(finalI).getName());
+                                    event.addParameters("receive_time", String.valueOf(dataType.getDateTime()));
+                                    event.addParameters("datasource_type", dataSourceClientAll.get(0).getDataSource().getType());
+                                    event.addParameters("trigger_time", String.valueOf(DateTime.getDateTime() + answer));
+                                    RunnableInsert runnableInsert = new RunnableInsert(ServiceSelfReport.this, configManager.getConfig().get(finalI).getDatasource().toDataSourceBuilder(), prepareData(event));
+                                    handler.postDelayed(runnableInsert, answer);
+                                }
+                            });
+                            t.start();
                         }
                     });
 
@@ -255,6 +261,7 @@ public class ServiceSelfReport extends Service {
     public IBinder onBind(Intent intent) {
         throw new UnsupportedOperationException("Not yet implemented");
     }
+
     private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
