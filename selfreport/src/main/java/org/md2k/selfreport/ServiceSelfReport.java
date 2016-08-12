@@ -27,6 +27,7 @@ import org.md2k.datakitapi.time.DateTime;
 import org.md2k.selfreport.config.Config;
 import org.md2k.selfreport.config.ConfigManager;
 import org.md2k.utilities.Report.Log;
+import org.md2k.utilities.Report.LogStorage;
 import org.md2k.utilities.UI.AlertDialogs;
 import org.md2k.utilities.data_format.Event;
 
@@ -71,10 +72,15 @@ public class ServiceSelfReport extends Service {
     Handler handler;
     DataSourceClient[] dataSourceClients;
     boolean isAlreadyShown;
+    private boolean isStopping;
 
     @Override
     public void onCreate() {
         super.onCreate();
+        isStopping=false;
+        LogStorage.startLogFileStorageProcess(getApplicationContext().getPackageName());
+        Log.w(TAG,"time="+ DateTime.convertTimeStampToDateTime(DateTime.getDateTime())+",timestamp="+ DateTime.getDateTime()+",service_start");
+
         Log.d(TAG, "onCreate()...");
         LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver, new IntentFilter(Constants.INTENT_STOP));
         handler = new Handler();
@@ -90,7 +96,7 @@ public class ServiceSelfReport extends Service {
         isAlreadyShown = false;
     }
 
-    private void connectDataKit() {
+    private synchronized void connectDataKit() {
         DataKitAPI dataKitAPI = DataKitAPI.getInstance(getApplicationContext());
         try {
             dataKitAPI.connect(new OnConnectionListener() {
@@ -102,6 +108,7 @@ public class ServiceSelfReport extends Service {
                 }
             });
         } catch (DataKitException e) {
+            clear();
             stopSelf();
         }
     }
@@ -129,6 +136,7 @@ public class ServiceSelfReport extends Service {
                 dataKitAPI.register(dataSourceBuilder);
             }
         } catch (Exception e) {
+            clear();
             stopSelf();
         }
     }
@@ -246,14 +254,20 @@ public class ServiceSelfReport extends Service {
             e.printStackTrace();
         }
     }
-
-    @Override
-    public void onDestroy() {
+    synchronized void clear(){
+        if(isStopping) return;
+        isStopping=true;
+        Log.w(TAG,"time="+ DateTime.convertTimeStampToDateTime(DateTime.getDateTime())+",timestamp="+ DateTime.getDateTime()+",service_stop");
         LocalBroadcastManager.getInstance(this).unregisterReceiver(
                 mMessageReceiver);
         Log.d(TAG, "onDestroy()...");
         disconnectDataKit();
+    }
+
+    @Override
+    public void onDestroy() {
         Log.d(TAG, "...onDestroy()");
+        clear();
         super.onDestroy();
     }
 
@@ -265,6 +279,8 @@ public class ServiceSelfReport extends Service {
     private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            Log.w(TAG,"time="+ DateTime.convertTimeStampToDateTime(DateTime.getDateTime())+",timestamp="+ DateTime.getDateTime()+",broadcast_receiver_stop_service");
+            clear();
             stopSelf();
         }
     };
