@@ -6,11 +6,15 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import com.crashlytics.android.Crashlytics;
 import io.fabric.sdk.android.Fabric;
+
+import org.md2k.datakitapi.messagehandler.ResultCallback;
 import org.md2k.utilities.UI.ActivityAbout;
 import org.md2k.utilities.UI.ActivityCopyright;
+import org.md2k.utilities.permission.PermissionInfo;
 
 /**
  * Copyright (c) 2015, The University of Memphis, MD2K Center
@@ -47,6 +51,20 @@ public class ActivityMain extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Fabric.with(this, new Crashlytics());
+        PermissionInfo permissionInfo = new PermissionInfo();
+        permissionInfo.getPermissions(this, new ResultCallback<Boolean>() {
+            @Override
+            public void onResult(Boolean result) {
+                if (!result) {
+                    Toast.makeText(getApplicationContext(), "!PERMISSION DENIED !!! Could not continue...", Toast.LENGTH_SHORT).show();
+                    finish();
+                } else {
+                    load();
+                }
+            }
+        });
+    }
+    void load(){
         if(getIntent().hasExtra(ServiceSelfReport.ID) && getIntent().hasExtra(ServiceSelfReport.TYPE)) {
             id = getIntent().getStringExtra(ServiceSelfReport.ID);
             type = getIntent().getStringExtra(ServiceSelfReport.TYPE);

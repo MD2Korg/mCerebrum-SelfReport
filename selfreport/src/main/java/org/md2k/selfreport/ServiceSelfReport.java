@@ -21,6 +21,7 @@ import org.md2k.datakitapi.datatype.DataTypeJSONObject;
 import org.md2k.datakitapi.exception.DataKitException;
 import org.md2k.datakitapi.messagehandler.OnConnectionListener;
 import org.md2k.datakitapi.messagehandler.OnReceiveListener;
+import org.md2k.datakitapi.messagehandler.ResultCallback;
 import org.md2k.datakitapi.source.datasource.DataSourceBuilder;
 import org.md2k.datakitapi.source.datasource.DataSourceClient;
 import org.md2k.datakitapi.time.DateTime;
@@ -30,6 +31,7 @@ import org.md2k.utilities.Report.Log;
 import org.md2k.utilities.Report.LogStorage;
 import org.md2k.utilities.UI.AlertDialogs;
 import org.md2k.utilities.data_format.Event;
+import org.md2k.utilities.permission.PermissionInfo;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -77,7 +79,21 @@ public class ServiceSelfReport extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        isStopping=false;
+        isStopping = false;
+        PermissionInfo permissionInfo = new PermissionInfo();
+        permissionInfo.getPermissions(this, new ResultCallback<Boolean>() {
+            @Override
+            public void onResult(Boolean result) {
+                if (!result) {
+                    Toast.makeText(getApplicationContext(), "!PERMISSION DENIED !!! Could not continue...", Toast.LENGTH_SHORT).show();
+                    stopSelf();
+                } else {
+                    load();
+                }
+            }
+        });
+    }
+    void load(){
         LogStorage.startLogFileStorageProcess(getApplicationContext().getPackageName());
         Log.w(TAG,"time="+ DateTime.convertTimeStampToDateTime(DateTime.getDateTime())+",timestamp="+ DateTime.getDateTime()+",service_start");
 
