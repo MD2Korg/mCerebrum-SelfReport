@@ -162,7 +162,7 @@ public class ServiceSelfReport extends Service {
         final HashMap<String, String> parameters = config.getParameters();
         if (parameters.size() == 2) {
             Log.d(TAG, "showAlert()...YesNo");
-            AlertDialogs.AlertDialog(this, parameters.get("s1"), parameters.get("s2"), org.md2k.utilities.R.drawable.ic_smoking_teal_48dp, "Ok", "Cancel", null, new DialogInterface.OnClickListener() {
+            AlertDialogs.AlertDialog(this, parameters.get("s1"), parameters.get("s2"), org.md2k.utilities.R.drawable.ic_smoking_teal_48dp, "Yes", "No", null, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     if (which == DialogInterface.BUTTON_POSITIVE) {
@@ -180,7 +180,7 @@ public class ServiceSelfReport extends Service {
             for (int i = 2; i < parameters.size(); i++)
                 items[i - 2] = (parameters.get("s" + Integer.toString(i + 1)));
             Log.d(TAG, "showAlert()...MultipleChoice..");
-            AlertDialogs.AlertDialogSingleChoice(this, parameters.get("s2"), items, 0, "Ok", "Cancel", new DialogInterface.OnClickListener() {
+            AlertDialogs.AlertDialogSingleChoice(this, parameters.get("s2"), items, 0, "Yes", "No", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     if (which == -1) {
@@ -228,10 +228,17 @@ public class ServiceSelfReport extends Service {
                                 @Override
                                 public void run() {
                                     HashMap<String, String> parameters = configManager.getConfig().get(finalI).getParameters();
-                                    int minTime = Integer.parseInt(parameters.get("s1"));
-                                    int maxTime = Integer.parseInt(parameters.get("s2"));
-                                    Random rn = new Random();
-                                    long answer = rn.nextInt(maxTime - minTime) + minTime;
+                                    int minTime=0, maxTime=0, answer;
+                                    if(parameters.containsKey("s1"))
+                                        minTime = Integer.parseInt(parameters.get("s1"));
+                                    if(parameters.containsKey("s2"))
+                                        maxTime = Integer.parseInt(parameters.get("s2"));
+                                    if(maxTime==0) {
+                                        answer=minTime;
+                                    }else {
+                                        Random rn = new Random();
+                                        answer = rn.nextInt(maxTime - minTime) + minTime;
+                                    }
                                     Event event = new Event(configManager.getConfig().get(finalI).getType(), configManager.getConfig().get(finalI).getId(), configManager.getConfig().get(finalI).getName());
                                     event.addParameters("receive_time", String.valueOf(dataType.getDateTime()));
                                     event.addParameters("datasource_type", dataSourceClientAll.get(0).getDataSource().getType());
