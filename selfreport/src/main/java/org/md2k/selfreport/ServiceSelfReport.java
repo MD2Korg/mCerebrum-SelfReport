@@ -6,8 +6,10 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.IBinder;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.widget.Toast;
 
@@ -31,6 +33,7 @@ import org.md2k.utilities.Report.Log;
 import org.md2k.utilities.Report.LogStorage;
 import org.md2k.utilities.UI.AlertDialogs;
 import org.md2k.utilities.data_format.Event;
+import org.md2k.utilities.icons.Icon;
 import org.md2k.utilities.permission.PermissionInfo;
 
 import java.util.ArrayList;
@@ -159,10 +162,14 @@ public class ServiceSelfReport extends Service {
 
     void showAlert(final Config config) {
         Log.d(TAG, "showAlert()...");
-        final HashMap<String, String> parameters = config.getParameters();
-        if (parameters.size() == 2) {
+        Drawable drawable;
+        if(config.getParameters().getIcon()==null)
+          drawable=Icon.get(this,Icon.Id.QUESTION_CIRCLE, ContextCompat.getColor(this,R.color.teal_500), Icon.Size.SMALL);
+        else drawable=Icon.get(this, config.getParameters().getIcon(), ContextCompat.getColor(this,R.color.teal_500), Icon.Size.SMALL);
+        if (config.getParameters().getType().equals(Config.Parameter.SIMPLE)) {
             Log.d(TAG, "showAlert()...YesNo");
-            AlertDialogs.AlertDialog(this, parameters.get("s1"), parameters.get("s2"), org.md2k.utilities.R.drawable.ic_smoking_teal_48dp, "Yes", "No", null, new DialogInterface.OnClickListener() {
+
+            AlertDialogs.AlertDialog(this, config.getParameters().getTitle(), config.getParameters().getDescription(), drawable, config.getParameters().getPositive_button(), config.getParameters().getNegative_button(), config.getParameters().getNeutral_button(), new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     if (which == DialogInterface.BUTTON_POSITIVE) {
@@ -176,19 +183,15 @@ public class ServiceSelfReport extends Service {
                 }
             });
         } else {
-            final String[] items = new String[parameters.size() - 2];
-            for (int i = 2; i < parameters.size(); i++)
-                items[i - 2] = (parameters.get("s" + Integer.toString(i + 1)));
-            Log.d(TAG, "showAlert()...MultipleChoice..");
-            AlertDialogs.AlertDialogSingleChoice(this, parameters.get("s2"), items, 0, "Yes", "No", new DialogInterface.OnClickListener() {
+            AlertDialogs.AlertDialogSingleChoice(this, config.getParameters().getDescription(), config.getParameters().getOptions(), 0, config.getParameters().getPositive_button(), config.getParameters().getNegative_button(), new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     if (which == -1) {
                         dialog.dismiss();
                     } else {
                         Toast.makeText(ServiceSelfReport.this, config.getName() + " saved...", Toast.LENGTH_SHORT).show();
-                        Event event = new Event(config.getType(), config.getId(), config.getName() + "(" + items[which] + ")");
-                        event.addParameters("option", items[which]);
+                        Event event = new Event(config.getType(), config.getId(), config.getName() + "(" + config.getParameters().getOptions()[which] + ")");
+                        event.addParameters("option", config.getParameters().getOptions()[which]);
                         DataTypeJSONObject dataTypeJSONObject = prepareData(event);
                         RunnableInsert runnableInsert = new RunnableInsert(ServiceSelfReport.this, config.getDatasource().toDataSourceBuilder(), dataTypeJSONObject);
                         handler.post(runnableInsert);
@@ -227,24 +230,14 @@ public class ServiceSelfReport extends Service {
                             Thread t = new Thread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    HashMap<String, String> parameters = configManager.getConfig().get(finalI).getParameters();
-                                    int minTime=0, maxTime=0, answer;
-                                    if(parameters.containsKey("s1"))
-                                        minTime = Integer.parseInt(parameters.get("s1"));
-                                    if(parameters.containsKey("s2"))
-                                        maxTime = Integer.parseInt(parameters.get("s2"));
-                                    if(maxTime==0) {
-                                        answer=minTime;
-                                    }else {
-                                        Random rn = new Random();
-                                        answer = rn.nextInt(maxTime - minTime) + minTime;
-                                    }
+
+                                    long trigger_time = configManager.getConfig().get(finalI).getParameters().getTrigger_time();
                                     Event event = new Event(configManager.getConfig().get(finalI).getType(), configManager.getConfig().get(finalI).getId(), configManager.getConfig().get(finalI).getName());
                                     event.addParameters("receive_time", String.valueOf(dataType.getDateTime()));
                                     event.addParameters("datasource_type", dataSourceClientAll.get(0).getDataSource().getType());
-                                    event.addParameters("trigger_time", String.valueOf(DateTime.getDateTime() + answer));
+                                    event.addParameters("trigger_time", String.valueOf(DateTime.getDateTime() + trigger_time));
                                     RunnableInsert runnableInsert = new RunnableInsert(ServiceSelfReport.this, configManager.getConfig().get(finalI).getDatasource().toDataSourceBuilder(), prepareData(event));
-                                    handler.postDelayed(runnableInsert, answer);
+                                    handler.postDelayed(runnableInsert, trigger_time);
                                 }
                             });
                             t.start();

@@ -37,7 +37,57 @@ public class Config {
     private String name;
     private DataSource datasource;
     private DataSource listen_datasource;
-    private HashMap<String, String> parameters;
+    private Parameter parameters;
+    public class Parameter{
+        public static final String SINGLE_CHOICE="SINGLE_CHOICE";
+        public static final String MULTIPLE_CHOICE="MULTIPLE_CHOICE";
+        public static final String SIMPLE="SIMPLE";
+        String title;
+        String description;
+        String icon;
+        String type;
+        String[] options;
+        String positive_button;
+        String negative_button;
+        String neutral_button;
+        long trigger_time;
+
+        public String getTitle() {
+            return title;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public String[] getOptions() {
+            return options;
+        }
+
+        public String getPositive_button() {
+            return positive_button;
+        }
+
+        public String getNegative_button() {
+            return negative_button;
+        }
+
+        public String getNeutral_button() {
+            return neutral_button;
+        }
+
+        public String getIcon() {
+            return icon;
+        }
+
+        public long getTrigger_time() {
+            return trigger_time;
+        }
+    }
 
     public String getId() {
         return id;
@@ -47,7 +97,7 @@ public class Config {
         return datasource;
     }
 
-    public HashMap<String, String> getParameters() {
+    public Parameter getParameters() {
         return parameters;
     }
 
