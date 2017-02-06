@@ -77,12 +77,10 @@ public class ServiceSelfReport extends Service {
     Handler handler;
     DataSourceClient[] dataSourceClients;
     boolean isAlreadyShown;
-    private boolean isStopping;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        isStopping = false;
         PermissionInfo permissionInfo = new PermissionInfo();
         permissionInfo.getPermissions(this, new ResultCallback<Boolean>() {
             @Override
@@ -231,7 +229,7 @@ public class ServiceSelfReport extends Service {
                                 @Override
                                 public void run() {
 
-                                    long trigger_time = configManager.getConfig().get(finalI).getParameters().getTrigger_time();
+                                    long trigger_time = configManager.getConfig().get(finalI).getTrigger_time();
                                     Event event = new Event(configManager.getConfig().get(finalI).getType(), configManager.getConfig().get(finalI).getId(), configManager.getConfig().get(finalI).getName());
                                     event.addParameters("receive_time", String.valueOf(dataType.getDateTime()));
                                     event.addParameters("datasource_type", dataSourceClientAll.get(0).getDataSource().getType());
@@ -271,12 +269,9 @@ public class ServiceSelfReport extends Service {
         }
     }
     synchronized void clear(){
-        if(isStopping) return;
-        isStopping=true;
         Log.w(TAG,"time="+ DateTime.convertTimeStampToDateTime(DateTime.getDateTime())+",timestamp="+ DateTime.getDateTime()+",service_stop");
         LocalBroadcastManager.getInstance(this).unregisterReceiver(
                 mMessageReceiver);
-        Log.d(TAG, "onDestroy()...");
         disconnectDataKit();
     }
 

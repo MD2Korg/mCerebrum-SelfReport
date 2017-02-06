@@ -38,6 +38,7 @@ public class Config {
     private DataSource datasource;
     private DataSource listen_datasource;
     private Parameter parameters;
+    long trigger_time;
     public class Parameter{
         public static final String SINGLE_CHOICE="SINGLE_CHOICE";
         public static final String MULTIPLE_CHOICE="MULTIPLE_CHOICE";
@@ -50,7 +51,6 @@ public class Config {
         String positive_button;
         String negative_button;
         String neutral_button;
-        long trigger_time;
 
         public String getTitle() {
             return title;
@@ -84,9 +84,9 @@ public class Config {
             return icon;
         }
 
-        public long getTrigger_time() {
-            return trigger_time;
-        }
+    }
+    public long getTrigger_time() {
+        return trigger_time;
     }
 
     public String getId() {
